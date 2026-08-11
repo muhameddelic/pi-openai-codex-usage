@@ -14,6 +14,7 @@ Codex 7d ██░░░░ 37%
 - Optional detailed panel below the editor
 - Primary, secondary, and code-review usage windows when available
 - Reset countdowns, plan status, credits, and spend-limit information
+- Exact reset times include the user's local timezone
 - Automatic refresh every five minutes and after Codex agent runs
 - Automatically hides when the active model is not from `openai-codex`
 - Uses Pi's existing OpenAI Codex OAuth login; no separate token configuration
@@ -61,10 +62,17 @@ The token is not persisted or logged by the extension. It is only sent to OpenAI
 
 ## Development
 
+Install dependencies and run the tests:
+
+```bash
+npm install
+npm test
+```
+
 Load the extension directly from a checkout:
 
 ```bash
-pi --no-extensions -e ./extensions/openai-codex-usage.ts
+pi --no-extensions -e ./extensions/openai-codex-usage/index.ts
 ```
 
 ## License
