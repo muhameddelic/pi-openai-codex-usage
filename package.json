@@ -1,0 +1,28 @@
+{
+  "name": "pi-openai-codex-usage",
+  "version": "0.1.0",
+  "description": "Pi extension that displays OpenAI Codex subscription usage in the TUI",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "openai",
+    "codex",
+    "usage"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muhameddelic/pi-openai-codex-usage.git"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/openai-codex-usage.ts"
+    ]
+  }
+}
