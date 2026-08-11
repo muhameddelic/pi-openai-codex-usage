@@ -100,6 +100,48 @@ function windows(rateLimit: RateLimit | null | undefined): UsageWindow[] {
 	);
 }
 
+function interpolate(start: number, end: number, amount: number): number {
+	return Math.round(start + (end - start) * amount);
+}
+
+function quotaRgb(percent: number): [number, number, number] {
+	const clamped = Math.max(0, Math.min(100, percent));
+	const green: [number, number, number] = [34, 197, 94];
+	const yellow: [number, number, number] = [234, 179, 8];
+	const red: [number, number, number] = [239, 68, 68];
+
+	if (clamped >= 90) return red;
+
+	let start: [number, number, number];
+	let end: [number, number, number];
+	let amount: number;
+	if (clamped <= 50) {
+		start = green;
+		end = yellow;
+		amount = clamped / 50;
+	} else {
+		start = yellow;
+		end = red;
+		amount = (clamped - 50) / 40;
+	}
+
+	return [
+		interpolate(start[0], end[0], amount),
+		interpolate(start[1], end[1], amount),
+		interpolate(start[2], end[2], amount),
+	];
+}
+
+function quotaColor(text: string, percent: number): string {
+	const [red, green, blue] = quotaRgb(percent);
+	return `\u001b[38;2;${red};${green};${blue}m${text}\u001b[39m`;
+}
+
+function quotaBar(percent: number, width: number, empty: (text: string) => string): string {
+	const filled = Math.round((percent / 100) * width);
+	return quotaColor("█".repeat(filled), percent) + empty("░".repeat(width - filled));
+}
+
 function statusText(usage: UsageResponse, ctx: ExtensionContext): string {
 	const rateWindows = windows(usage.rate_limit);
 	if (rateWindows.length === 0) return ctx.ui.theme.fg("dim", "Codex: usage unavailable");
@@ -109,10 +151,10 @@ function statusText(usage: UsageResponse, ctx: ExtensionContext): string {
 			const percent = usedPercent(window);
 			if (percent === undefined) return undefined;
 
-			const filled = Math.round((percent / 100) * 6);
-			const color = usage.rate_limit?.limit_reached || percent >= 100 ? "error" : percent >= 80 ? "warning" : "success";
-			const bar = ctx.ui.theme.fg(color, "█".repeat(filled)) + ctx.ui.theme.fg("dim", "░".repeat(6 - filled));
-			return `${windowLabel(window)} ${bar} ${percent}%`;
+			const bar = quotaBar(percent, 6, (text) => ctx.ui.theme.fg("dim", text));
+			const reset = percent >= 90 ? resetSeconds(window) : undefined;
+			const resetText = reset === undefined ? "" : ctx.ui.theme.fg("warning", ` ↻${formatDuration(reset)}`);
+			return `${windowLabel(window)} ${bar} ${quotaColor(`${percent}%`, percent)}${resetText}`;
 		})
 		.filter((value): value is string => value !== undefined);
 
@@ -205,12 +247,14 @@ export default function (pi: ExtensionAPI) {
 
 					const addWindow = (label: string, window: UsageWindow, limitReached = false) => {
 						const percent = usedPercent(window) ?? 0;
-						const filled = Math.round((percent / 100) * barWidth);
-						const color = limitReached || percent >= 100 ? "error" : percent >= 80 ? "warning" : "success";
-						const bar = theme.fg(color, "█".repeat(filled)) + theme.fg("dim", "░".repeat(barWidth - filled));
+						const bar = limitReached
+							? theme.fg("error", "█".repeat(Math.round((percent / 100) * barWidth))) +
+								theme.fg("dim", "░".repeat(barWidth - Math.round((percent / 100) * barWidth)))
+							: quotaBar(percent, barWidth, (text) => theme.fg("dim", text));
 						const reset = resetSeconds(window);
-						const resetText = reset === undefined ? "" : theme.fg("dim", ` · resets in ${formatDuration(reset)}`);
-						lines.push(`${theme.fg("muted", label.padEnd(12))} ${bar} ${String(percent).padStart(3)}%${resetText}`);
+						const resetColor = percent >= 90 ? "warning" : "dim";
+						const resetText = reset === undefined ? "" : theme.fg(resetColor, ` · resets in ${formatDuration(reset)}`);
+						lines.push(`${theme.fg("muted", label.padEnd(12))} ${bar} ${quotaColor(`${String(percent).padStart(3)}%`, percent)}${resetText}`);
 					};
 
 					for (const [index, window] of rateWindows.entries()) {

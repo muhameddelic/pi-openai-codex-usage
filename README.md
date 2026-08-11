@@ -9,6 +9,8 @@ Codex 7d ██░░░░ 37%
 ## Features
 
 - Compact usage progress bar in Pi's footer
+- Progress color shifts continuously from green through yellow to red as quota is consumed
+- At 90% usage, the bar turns red and the footer automatically shows the reset countdown
 - Optional detailed panel below the editor
 - Primary, secondary, and code-review usage windows when available
 - Reset countdowns, plan status, credits, and spend-limit information
